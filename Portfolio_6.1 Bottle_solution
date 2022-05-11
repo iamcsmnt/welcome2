@@ -1,0 +1,20 @@
+SELECT 
+FROM_UNIXTIME(load_time, 'YYYY-MM-DD'), 
+100*SUM(CASE WHEN load_time IS null THEN 1 ELSE 0 END)/sum(1) AS percent
+FROM
+(
+SELECT 
+    inner_id, 
+    ip, 
+    unix_timestamp(time) AS load_time, 
+	ifnull(LEAD(unix_timestamp(time)) 
+           OVER (PARTITION BY l.net_id, l.ip ORDER BY unix_timestamp(time)), unix_timestamp(CURDATE())) AS next_load_time
+  FROM loads AS l
+  LEFT JOIN players AS p
+  ON l.net_id = p.net_id
+) 
+AS m
+LEFT JOIN sessions
+	ON player_id = m.inner_id
+	AND m.ip = sessions.ip
+	AND login_time >= load_time
